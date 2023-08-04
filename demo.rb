@@ -154,8 +154,8 @@ class SettingsScreen
   end
 
   def draw
-    @font.draw_text(@title, WIDTH / 2 - @font.text_width(@title) / 2, HEIGHT / 4, 1, 1, 1, Gosu::Color::WHITE)
-    @font.draw_text(@volume_label, WIDTH / 2 - @font.text_width(@volume_label) / 2, HEIGHT / 2, 1, 1, 1, Gosu::Color::WHITE)
+    @font.draw_text(@title, WIDTH / 2 - @font.text_width(@title) / 2, HEIGHT / 4, ZOrder::MIDDLE, 1, 1, Gosu::Color::WHITE)
+    @font.draw_text(@volume_label, WIDTH / 2 - @font.text_width(@volume_label) / 2, HEIGHT / 2, ZOrder::MIDDLE, 1, 1, Gosu::Color::WHITE)
   end
 
   def set_music_volume(new_volume)
@@ -175,26 +175,36 @@ end
 class MyWindow < Gosu::Window
 
   def initialize
-      super WIDTH, HEIGHT
-      self.caption = "Car Avoidance Demo"
-      @song = Gosu::Song.new("Nutcracker REMIX.mp3")
-      @start = Start.new
-      @settings_screen = nil
-      @song.play(true)
-      @player = Player.new
-      @obstacles = []
-      @ob = Obstacles.new
-      @obstacles[0] = @ob
-      @game_over = nil
-      @lines = []
+    super WIDTH, HEIGHT
+    self.caption = "Car Avoidance Demo"
 
-      for i in 1..3
-          x = width / 4 * i
-          @lines << Line.new(x, 0, height)
-          @lines << Line.new(x, 120, height)
-          @lines << Line.new(x, 240, height)
-          @lines << Line.new(x, 360, height)
-      end
+    @start = Start.new
+    @game_over = nil
+    
+    @player = Player.new
+
+    @obstacles = []
+    @ob = Obstacles.new
+    @obstacles[0] = @ob
+    
+    @lines = []
+    for i in 1..3
+        x = width / 4 * i
+        @lines << Line.new(x, 0, height)
+        @lines << Line.new(x, 120, height)
+        @lines << Line.new(x, 240, height)
+        @lines << Line.new(x, 360, height)
+    end
+
+    # Load music volume from file and create a new SettingsScreen instance if needed
+    load_music_volume
+
+    # Create the song object
+    @song = Gosu::Song.new("Nutcracker REMIX.mp3")
+    @song.volume = @settings_screen.music_volume / 100.0
+
+    # Play the song at the start of the menu
+    @song.play(true)
   end
 
   def update
@@ -296,10 +306,12 @@ class MyWindow < Gosu::Window
 
   def load_music_volume
     if File.exist?('music_volume.txt')
+      if @settings_screen.nil?
+        @settings_screen = SettingsScreen.new
+      end
       @settings_screen.music_volume = File.read('music_volume.txt').to_i
+      @settings_screen.update_volume_label
     end
-    @settings_screen.update_volume_label
-    @song.volume = @settings_screen.music_volume / 100.0
   end
 
   def draw
