@@ -5,6 +5,10 @@ HEIGHT = 480
 PLAYER_SPEED = 5
 AUTO_SPEED = 5
 
+module ZOrder
+  BACKGROUND, MIDDLE, TOP = *0..2
+end
+
 class Line
   attr_accessor :x, :y, :height
 
@@ -22,7 +26,7 @@ class Line
   end
 
   def draw
-    Gosu.draw_rect(@x, @y, 10, 50, Gosu::Color::WHITE)
+    Gosu.draw_rect(@x, @y, 10, 50, Gosu::Color::WHITE, ZOrder::BACKGROUND)
   end
 end
 
@@ -67,9 +71,9 @@ class Player
   end
   
   def draw
-    @image.draw_rot(@x_pos, @y_pos, 1)
-    @font.draw_text(@score_txt, WIDTH - @font.text_width(@score_txt) - 10, 10, 2)
-    @font.draw_text(@hi_score_txt, WIDTH - @font.text_width(@hi_score_txt) - 10, 40, 2)
+    @image.draw_rot(@x_pos, @y_pos, ZOrder::MIDDLE)
+    @font.draw_text(@score_txt, WIDTH - @font.text_width(@score_txt) - 10, 10, ZOrder::TOP)
+    @font.draw_text(@hi_score_txt, WIDTH - @font.text_width(@hi_score_txt) - 10, 40, ZOrder::TOP)
   end
 end
 
@@ -86,7 +90,7 @@ class Obstacles
     end
 
     def draw
-        @image.draw_rot(@x_pos, @y_pos, 1)
+        @image.draw_rot(@x_pos, @y_pos, ZOrder::MIDDLE)
     end
 end
 
@@ -101,12 +105,12 @@ class GameOver
   end
 
   def draw
-      @font.draw_text("Game Over", WIDTH/2 - 100, HEIGHT/2 - 50, 1)
-      @font.draw_text("Score: #{@score}", WIDTH/2 - 100, HEIGHT/2, 1)
+      @font.draw_text("Game Over", WIDTH/2 - 100, HEIGHT/2 - 50, ZOrder::TOP)
+      @font.draw_text("Score: #{@score}", WIDTH/2 - 100, HEIGHT/2, ZOrder::TOP)
 
       # Draw restart button
-      Gosu.draw_rect(@button_x, @button_y, @button_width, @button_height, Gosu::Color::GRAY, 2)
-      @font.draw_text("Restart", WIDTH/2 - 40, HEIGHT/2 + 60, 3, 1, 1, Gosu::Color::BLACK)
+      Gosu.draw_rect(@button_x, @button_y, @button_width, @button_height, Gosu::Color::GRAY, ZOrder::BACKGROUND)
+      @font.draw_text("Restart", WIDTH/2 - 40, HEIGHT/2 + 60, ZOrder::MIDDLE, 1, 1, Gosu::Color::BLACK)
   end
 
   def mouse_over_button?(mouse_x, mouse_y)
@@ -115,57 +119,93 @@ class GameOver
 end
 
 class Start
+  attr_accessor :buttons, :selected_button
+
   def initialize
     @font = Gosu::Font.new(32)
     @title_font = Gosu::Font.new(48)
     @title = "Car Avoidance"
-    @instructions = "Use the left and right keys to move the player." 
-    @instructions_2 = "Avoid obstacles and receive score!"
+    @buttons = ['Play', 'Settings', 'Credits', 'Quit']
+    @selected_button = 0
   end
 
   def draw
     @title_font.draw_text(@title, WIDTH/2 - @title_font.text_width(@title)/2, HEIGHT/4, 1, 1, 1, Gosu::Color::WHITE)
-    @font.draw_text(@instructions, WIDTH/2 - @font.text_width(@instructions)/2, HEIGHT/2 - @font.height, 1, 1, 1, Gosu::Color::WHITE)
-    @font.draw_text(@instructions_2, WIDTH/2 - @font.text_width(@instructions_2)/2, HEIGHT/2, 1, 1, 1, Gosu::Color::WHITE)
-    @font.draw_text("Press space to start", WIDTH/2 - @font.text_width("Press space to start")/2, HEIGHT*3/4, 1, 1, 1, Gosu::Color::WHITE)
+    # Draw buttons
+    @buttons.each_with_index do |button, index|
+      if index == @selected_button
+        color = Gosu::Color::RED
+      else
+        color = Gosu::Color::WHITE
+      end
+      @font.draw_text(button, WIDTH/2 - @font.text_width(button)/2, HEIGHT/2 + index * 50, 1, 1, 1, color)
+    end
+  end
+end
+
+class SettingsScreen
+  attr_accessor :music_volume, :volume_percentage
+
+  def initialize
+    @font = Gosu::Font.new(32)
+    @title = "Settings"
+    @music_volume = 100 # Initial music volume is set to 100 (max volume)
+    update_volume_label
+  end
+
+  def draw
+    @font.draw_text(@title, WIDTH / 2 - @font.text_width(@title) / 2, HEIGHT / 4, 1, 1, 1, Gosu::Color::WHITE)
+    @font.draw_text(@volume_label, WIDTH / 2 - @font.text_width(@volume_label) / 2, HEIGHT / 2, 1, 1, 1, Gosu::Color::WHITE)
+  end
+
+  def set_music_volume(new_volume)
+    @music_volume = [new_volume, 0].max
+    @music_volume = [100, @music_volume].min # Limit volume between 0 and 100
+    update_volume_label
+    # Save the music volume to a file
+    File.write('music_volume.txt', @music_volume)
+  end
+
+  def update_volume_label
+    @volume_label = "Music Volume: #{@music_volume}"
+    @volume_percentage = @music_volume / 100.0
   end
 end
 
 class MyWindow < Gosu::Window
 
-    def initialize
-        super WIDTH, HEIGHT
-        self.caption = "Car Avoidance Demo"
-        @song = Gosu::Song.new("Nutcracker REMIX.mp3")
-        @song.play(true)
-        @start = Start.new
-        @player = Player.new
-        @obstacles = []
-        @ob = Obstacles.new
-        @obstacles[0] = @ob
-        @game_over = nil
-        @lines = []
+  def initialize
+      super WIDTH, HEIGHT
+      self.caption = "Car Avoidance Demo"
+      @song = Gosu::Song.new("Nutcracker REMIX.mp3")
+      @start = Start.new
+      @settings_screen = nil
+      @song.play(true)
+      @player = Player.new
+      @obstacles = []
+      @ob = Obstacles.new
+      @obstacles[0] = @ob
+      @game_over = nil
+      @lines = []
 
-        for i in 1..3
-            x = width / 4 * i
-            @lines << Line.new(x, 0, height)
-            @lines << Line.new(x, 120, height)
-            @lines << Line.new(x, 240, height)
-            @lines << Line.new(x, 360, height)
-        end
-    end
+      for i in 1..3
+          x = width / 4 * i
+          @lines << Line.new(x, 0, height)
+          @lines << Line.new(x, 120, height)
+          @lines << Line.new(x, 240, height)
+          @lines << Line.new(x, 360, height)
+      end
+  end
 
   def update
-
+    
     if @start
-      if button_down?(Gosu::KbSpace)
-        @start = nil
-      end
+      return
+    elsif @settings_screen
+      return
+    elsif @game_over
       return
     else
-      if @game_over
-        return
-      end
 
       @player.score_add
       # Check for collision with player
@@ -176,7 +216,7 @@ class MyWindow < Gosu::Window
        # Collision detected
        puts "Collision!"
        @game_over = GameOver.new(@player.score)
-     end
+      end
 
       @ob.move
 
@@ -212,14 +252,61 @@ class MyWindow < Gosu::Window
   end 
 
   def button_down(id)
-    if @game_over && id == Gosu::MsLeft && @game_over.mouse_over_button?(mouse_x, mouse_y)
+    if @start
+      if id == Gosu::KbDown && @start.selected_button < @start.buttons.length - 1
+        @start.selected_button += 1
+      elsif id == Gosu::KbUp && @start.selected_button > 0
+        @start.selected_button -= 1
+      elsif id == Gosu::KbEnter || id == Gosu::KbReturn
+        # Execute the corresponding action based on the selected button
+        case @start.buttons[@start.selected_button]
+          when 'Play'
+            puts "Start the game"
+            @start = nil
+          when 'Settings'
+            puts "Enter the settings"
+            @settings_screen = SettingsScreen.new
+            load_music_volume
+            @start = nil
+          when 'Credits'
+            puts "Enter the credits"
+          when 'Quit'
+            close
+        end
+      end
+    elsif @settings_screen
+      if id == Gosu::KbUp
+        adjust_music_volume(10) # Increase music volume by 10
+      elsif id == Gosu::KbDown
+        adjust_music_volume(-10) # Decrease music volume by 10
+      elsif id == Gosu::KbEscape
+        # Close the settings screen and return to the main menu
+        @settings_screen = nil
+        @start = Start.new
+      end
+    elsif @game_over && id == Gosu::MsLeft && @game_over.mouse_over_button?(mouse_x, mouse_y)
       restart_game()
     end
+  end
+
+  def adjust_music_volume(delta)
+    @settings_screen.set_music_volume(@settings_screen.music_volume + delta)
+    @song.volume = @settings_screen.music_volume / 100.0
+  end
+
+  def load_music_volume
+    if File.exist?('music_volume.txt')
+      @settings_screen.music_volume = File.read('music_volume.txt').to_i
+    end
+    @settings_screen.update_volume_label
+    @song.volume = @settings_screen.music_volume / 100.0
   end
 
   def draw
     if @start
       @start.draw
+    elsif @settings_screen
+      @settings_screen.draw
     else
       @player.draw
       @obstacles.each do |obstacle|
