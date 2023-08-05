@@ -202,7 +202,7 @@ class MyWindow < Gosu::Window
     # Create the song object
     @song = Gosu::Song.new("Nutcracker REMIX.mp3")
     @song.volume = @settings_screen.music_volume / 100.0
-
+    @settings_screen = nil
     # Play the song at the start of the menu
     @song.play(true)
   end
