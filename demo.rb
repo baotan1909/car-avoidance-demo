@@ -95,26 +95,51 @@ class Obstacles
 end
 
 class GameOver
-  def initialize(score)
-      @score = score
-      @font = Gosu::Font.new(32)
-      @button_x = WIDTH/2 - 100
-      @button_y = HEIGHT/2 + 50
-      @button_width = 200
-      @button_height = 50
+  def initialize(score, hi_score)
+    @score = score
+    @hi_score = hi_score
+    @font = Gosu::Font.new(32)
+    @button_width = 200
+    @button_height = 50
+    @center_x = WIDTH / 2
+    @center_y = HEIGHT / 2
+    @game_over_label = "Game Over"
+    @game_over_x = @center_x - @font.text_width(@game_over_label) / 2
+    @game_over_y = @center_y - 100
+    @score_label = "Score: #{@score}"
+    @score_x = @center_x - @font.text_width(@score_label) / 2
+    @score_y = @center_y - 50
+    @hi_score_label = "Hi-Score: #{@hi_score}"
+    @hi_score_x = @center_x - @font.text_width(@hi_score_label) / 2
+    @hi_score_y = @center_y
+    @button_x = @center_x - @button_width / 2
+    @button_y = @center_y + 30
+    @blur_opacity = 0.5
   end
 
   def draw
-      @font.draw_text("Game Over", WIDTH/2 - 100, HEIGHT/2 - 50, ZOrder::TOP)
-      @font.draw_text("Score: #{@score}", WIDTH/2 - 100, HEIGHT/2, ZOrder::TOP)
+    # Draw semi-transparent rectangles to create the blur effect
+    Gosu.draw_rect(0, 0, WIDTH, HEIGHT, Gosu::Color.new(@blur_opacity * 255, 0, 0, 0), ZOrder::BACKGROUND)
 
-      # Draw restart button
-      Gosu.draw_rect(@button_x, @button_y, @button_width, @button_height, Gosu::Color::GRAY, ZOrder::BACKGROUND)
-      @font.draw_text("Restart", WIDTH/2 - 40, HEIGHT/2 + 60, ZOrder::MIDDLE, 1, 1, Gosu::Color::BLACK)
+    @font.draw_text(@game_over_label, @game_over_x, @game_over_y, ZOrder::TOP, 1, 1, Gosu::Color::WHITE)
+    @font.draw_text(@score_label, @score_x, @score_y, ZOrder::TOP, 1, 1, Gosu::Color::WHITE)
+    @font.draw_text(@hi_score_label, @hi_score_x, @hi_score_y, ZOrder::TOP, 1, 1, Gosu::Color::WHITE)
+
+    # Draw restart button
+    Gosu.draw_rect(@button_x, @button_y, @button_width, @button_height, Gosu::Color::GRAY, ZOrder::MIDDLE)
+    @font.draw_text("Restart", @center_x - 40, @center_y + 40, ZOrder::TOP, 1, 1, Gosu::Color::BLACK)
+
+    # Draw menu button
+    Gosu.draw_rect(@button_x, @button_y + 60, @button_width, @button_height, Gosu::Color::GRAY, ZOrder::MIDDLE)
+    @font.draw_text("Menu", @center_x - 30, @center_y + 100, ZOrder::TOP, 1, 1, Gosu::Color::BLACK)
   end
 
-  def mouse_over_button?(mouse_x, mouse_y)
-      mouse_x > @button_x && mouse_x < @button_x + @button_width && mouse_y > @button_y && mouse_y < @button_y + @button_height
+  def mouse_over_restart?(mouse_x, mouse_y)
+    mouse_x > @button_x && mouse_x < @button_x + @button_width && mouse_y > @button_y && mouse_y < @button_y + @button_height
+  end
+
+  def mouse_over_menu?(mouse_x, mouse_y)
+    mouse_x > @button_x && mouse_x < @button_x + @button_width && mouse_y > @button_y + 80 && mouse_y < @button_y + 80 + @button_height
   end
 end
 
@@ -225,7 +250,7 @@ class MyWindow < Gosu::Window
         @player.y_pos + @player.image.height > @ob.y_pos
        # Collision detected
        puts "Collision!"
-       @game_over = GameOver.new(@player.score)
+       @game_over = GameOver.new(@player.score, @player.hi_score)
       end
 
       @ob.move
@@ -250,16 +275,6 @@ class MyWindow < Gosu::Window
       end
     end
   end
-
-  def restart_game
-    @start = Start.new
-    @player = Player.new
-    @obstacles.clear
-    @ob = Obstacles.new # Reset @ob to a new instance of the Obstacles class
-    @obstacles << @ob
-    @game_over = nil
-    @player.score = 0 # Reset player's score
-  end 
 
   def button_down(id)
     if @start
@@ -294,9 +309,32 @@ class MyWindow < Gosu::Window
         @settings_screen = nil
         @start = Start.new
       end
-    elsif @game_over && id == Gosu::MsLeft && @game_over.mouse_over_button?(mouse_x, mouse_y)
-      restart_game()
+    elsif @game_over && id == Gosu::MsLeft
+      if @game_over.mouse_over_restart?(mouse_x, mouse_y)
+        restart_game()
+      elsif @game_over.mouse_over_menu?(mouse_x, mouse_y)
+        back_to_menu()
+      end
     end
+  end
+
+  def restart_game
+    @player = Player.new
+    @obstacles.clear
+    @ob = Obstacles.new # Reset @ob to a new instance of the Obstacles class
+    @obstacles << @ob
+    @game_over = nil
+    @player.score = 0 # Reset player's score
+  end 
+
+  def back_to_menu
+    @game_over = nil
+    @start = Start.new
+    @player = Player.new
+    @obstacles.clear
+    @ob = Obstacles.new # Reset @ob to a new instance of the Obstacles class
+    @obstacles << @ob
+    @player.score = 0 # Reset player's score
   end
 
   def adjust_music_volume(delta)
