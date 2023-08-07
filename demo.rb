@@ -469,7 +469,7 @@ class MyWindow < Gosu::Window
 
   def load_music_volume
     # If the music volume file exists, load the file
-    if File.exist?('music_volume.txt')
+    if (File.exist?('music_volume.txt'))
       # If the settings screen is not yet created, create it
       if @settings_screen.nil?
         @settings_screen = SettingsScreen.new
@@ -478,6 +478,11 @@ class MyWindow < Gosu::Window
       @settings_screen.music_volume = File.read('music_volume.txt').to_i
       # Update the volume label in the Settings screen
       @settings_screen.update_volume_label
+    else
+      # If the file does not exist, create a new settings screen and set the music volume to 100
+      if @settings_screen.nil?
+        @settings_screen = SettingsScreen.new
+      end
     end
   end
 
