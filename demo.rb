@@ -20,6 +20,7 @@ class Line
 
   def auto(height)
     @y += AUTO_SPEED
+    #If the line goes beyond the specified 'height', it wraps the position back to 0.
     if @y > height
       @y = 0
     end
@@ -114,13 +115,9 @@ class GameOver
     @hi_score_y = @center_y
     @button_x = @center_x - @button_width / 2
     @button_y = @center_y + 30
-    @blur_opacity = 0.5
   end
 
   def draw
-    # Draw semi-transparent rectangles to create the blur effect
-    Gosu.draw_rect(0, 0, WIDTH, HEIGHT, Gosu::Color.new(@blur_opacity * 255, 0, 0, 0), ZOrder::BACKGROUND)
-
     @font.draw_text(@game_over_label, @game_over_x, @game_over_y, ZOrder::TOP, 1, 1, Gosu::Color::WHITE)
     @font.draw_text(@score_label, @score_x, @score_y, ZOrder::TOP, 1, 1, Gosu::Color::WHITE)
     @font.draw_text(@hi_score_label, @hi_score_x, @hi_score_y, ZOrder::TOP, 1, 1, Gosu::Color::WHITE)
@@ -192,8 +189,58 @@ class SettingsScreen
   end
 
   def update_volume_label
-    @volume_label = "Music Volume: #{@music_volume}"
     @volume_percentage = @music_volume / 100.0
+    @volume_label = "Music Volume: #{@music_volume}"
+  end
+end
+
+class Pause
+  def initialize(score, hi_score)
+    @score = score
+    @hi_score = hi_score
+    @font = Gosu::Font.new(32)
+    @instruction_font = Gosu::Font.new(16)
+    @button_width = 200
+    @button_height = 50
+    @center_x = WIDTH / 2
+    @center_y = HEIGHT / 2
+    @pause_label = "Pause"
+    @pause_x = @center_x - @font.text_width(@pause_label) / 2
+    @pause_y = @center_y - 100
+    @score_label = "Score: #{@score}"
+    @score_x = @center_x - @font.text_width(@score_label) / 2
+    @score_y = @center_y - 50
+    @hi_score_label = "Hi-Score: #{@hi_score}"
+    @hi_score_x = @center_x - @font.text_width(@hi_score_label) / 2
+    @hi_score_y = @center_y
+    @instruction_label = "Press P to resume the game"
+    @instruction_x = @center_x - @instruction_font.text_width(@instruction_label) / 2
+    @instruction_y = HEIGHT - 30
+    @button_x = @center_x - @button_width / 2
+    @button_y = @center_y + 30
+  end
+
+  def draw
+    @font.draw_text(@pause_label, @pause_x, @pause_y, ZOrder::TOP, 1, 1, Gosu::Color::WHITE)
+    @font.draw_text(@score_label, @score_x, @score_y, ZOrder::TOP, 1, 1, Gosu::Color::WHITE)
+    @font.draw_text(@hi_score_label, @hi_score_x, @hi_score_y, ZOrder::TOP, 1, 1, Gosu::Color::WHITE)
+    @instruction_font.draw_text(@instruction_label, @instruction_x, @instruction_y, ZOrder::TOP, 1, 1, Gosu::Color::WHITE)
+
+    # Draw restart button
+    Gosu.draw_rect(@button_x, @button_y, @button_width, @button_height, Gosu::Color::GRAY, ZOrder::MIDDLE)
+    @font.draw_text("Restart", @center_x - 40, @center_y + 40, ZOrder::TOP, 1, 1, Gosu::Color::BLACK)
+
+    # Draw menu button
+    Gosu.draw_rect(@button_x, @button_y + 60, @button_width, @button_height, Gosu::Color::GRAY, ZOrder::MIDDLE)
+    @font.draw_text("Menu", @center_x - 30, @center_y + 100, ZOrder::TOP, 1, 1, Gosu::Color::BLACK)
+  end
+
+  def mouse_over_restart?(mouse_x, mouse_y)
+    mouse_x > @button_x && mouse_x < @button_x + @button_width && mouse_y > @button_y && mouse_y < @button_y + @button_height
+  end
+
+  def mouse_over_menu?(mouse_x, mouse_y)
+    mouse_x > @button_x && mouse_x < @button_x + @button_width && mouse_y > @button_y + 80 && mouse_y < @button_y + 80 + @button_height
   end
 end
 
@@ -201,11 +248,12 @@ class MyWindow < Gosu::Window
 
   def initialize
     super WIDTH, HEIGHT
-    self.caption = "Car Avoidance Demo"
+    self.caption = "Car Avoidance"
 
     @start = Start.new
     @game_over = nil
-    
+    @pause = nil
+
     @player = Player.new
 
     @obstacles = []
@@ -214,11 +262,11 @@ class MyWindow < Gosu::Window
     
     @lines = []
     for i in 1..3
-        x = width / 4 * i
-        @lines << Line.new(x, 0, height)
-        @lines << Line.new(x, 120, height)
-        @lines << Line.new(x, 240, height)
-        @lines << Line.new(x, 360, height)
+        x = WIDTH / 4 * i
+        @lines << Line.new(x, 0, HEIGHT)
+        @lines << Line.new(x, 120, HEIGHT)
+        @lines << Line.new(x, 240, HEIGHT)
+        @lines << Line.new(x, 360, HEIGHT)
     end
 
     # Load music volume from file and create a new SettingsScreen instance if needed
@@ -238,19 +286,21 @@ class MyWindow < Gosu::Window
       return
     elsif @settings_screen
       return
+    elsif @pause
+      return
     elsif @game_over
       return
     else
 
       @player.score_add
-      # Check for collision with player
-      if @player.x_pos < @ob.x_pos + @ob.image.width &&
-        @player.x_pos + @player.image.width > @ob.x_pos &&
-        @player.y_pos < @ob.y_pos + @ob.image.height &&
+      # Check for collision with player (AABB method)
+      if @player.x_pos < @ob.x_pos + @ob.image.width && 
+        @player.x_pos + @player.image.width > @ob.x_pos && 
+        @player.y_pos < @ob.y_pos + @ob.image.height && 
         @player.y_pos + @player.image.height > @ob.y_pos
-       # Collision detected
-       puts "Collision!"
-       @game_over = GameOver.new(@player.score, @player.hi_score)
+        # Collision detected
+        puts "Collision!"
+        @game_over = GameOver.new(@player.score, @player.hi_score)
       end
 
       @ob.move
@@ -315,6 +365,18 @@ class MyWindow < Gosu::Window
       elsif @game_over.mouse_over_menu?(mouse_x, mouse_y)
         back_to_menu()
       end
+    elsif @pause == nil
+      if id == Gosu::KbP
+        @pause = Pause.new(@player.score, @player.hi_score)
+      end
+    elsif @pause 
+      if @pause.mouse_over_restart?(mouse_x, mouse_y)
+        restart_game()
+      elsif @pause.mouse_over_menu?(mouse_x, mouse_y)
+        back_to_menu()
+      elsif id == Gosu::KbP
+        @pause = nil
+      end
     end
   end
 
@@ -323,17 +385,25 @@ class MyWindow < Gosu::Window
     @obstacles.clear
     @ob = Obstacles.new # Reset @ob to a new instance of the Obstacles class
     @obstacles << @ob
-    @game_over = nil
+    if @game_over
+      @game_over = nil
+    elsif @pause
+      @pause = nil
+    end
     @player.score = 0 # Reset player's score
   end 
 
   def back_to_menu
-    @game_over = nil
     @start = Start.new
     @player = Player.new
     @obstacles.clear
     @ob = Obstacles.new # Reset @ob to a new instance of the Obstacles class
     @obstacles << @ob
+    if @game_over
+      @game_over = nil
+    elsif @pause
+      @pause = nil
+    end
     @player.score = 0 # Reset player's score
   end
 
@@ -357,6 +427,10 @@ class MyWindow < Gosu::Window
       @start.draw
     elsif @settings_screen
       @settings_screen.draw
+    elsif @pause
+      @pause.draw
+    elsif @game_over
+      @game_over.draw
     else
       @player.draw
       @obstacles.each do |obstacle|
@@ -364,9 +438,6 @@ class MyWindow < Gosu::Window
       end
       @lines.each do |line|
         line.draw
-      end
-      if @game_over
-        @game_over.draw
       end
     end
   end
