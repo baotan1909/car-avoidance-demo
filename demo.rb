@@ -163,11 +163,16 @@ class Start
     @buttons = ['Play', 'Settings', 'Credits', 'Quit']
     # Sets the selected button to the first button in the array
     @selected_button = 0
+    # Loads the instruction rectangle image
+    @instruction_rectangle = Gosu::Image.new("Image/instruction_rect.png")
+    # Sets the x and y coordinates of the instruction rectangle
+    @instruction_x = 80
+    @instruction_y = (HEIGHT/2) - (@instruction_rectangle.height/2)
   end
 
   def draw
     # Draw the title
-    @title_font.draw_text(@title, WIDTH/2 - @title_font.text_width(@title)/2, HEIGHT/4, 1, 1, 1, Gosu::Color::WHITE)
+    @title_font.draw_text(@title, WIDTH/2 - @title_font.text_width(@title)/2, HEIGHT/4, ZOrder::MIDDLE, 1, 1, Gosu::Color::WHITE)
     # Draws each button in the array
     @buttons.each_with_index do |button, index|
     # Check if the current button is the selected button. If yes --> Red color ; otherwise White.
@@ -177,8 +182,15 @@ class Start
         color = Gosu::Color::WHITE
       end
       # Draw the button label with the specified color
-      @font.draw_text(button, WIDTH/2 - @font.text_width(button)/2, HEIGHT/2 + index * 50, 1, 1, 1, color)
+      @font.draw_text(button, WIDTH/2 - @font.text_width(button)/2, HEIGHT/2 + index * 50, ZOrder::MIDDLE, 1, 1, color)
     end
+    # Draws the instruction rectangle.
+    @instruction_rectangle.draw(@instruction_x, @instruction_y, ZOrder::MIDDLE)
+  end
+
+  def mouse_over_instruction?(mouse_x, mouse_y)
+      # Checks if the mouse is over the instruction rectangle.
+    mouse_x > @instruction_x && mouse_x < @instruction_x + @instruction_rectangle.width && mouse_y > @instruction_y && mouse_y < @instruction_y + @instruction_rectangle.height
   end
 end
 
@@ -282,10 +294,11 @@ class MyWindow < Gosu::Window
     # Initialize the window and set the caption
     super WIDTH, HEIGHT
     self.caption = "Car Avoidance"
-    # Create the start screen, game over screen, and settings screen
+    # Create the start screen, game over screen, settings and instruction screen
     @start = Start.new
     @game_over = nil
     @pause = nil
+    @instruction = nil
     # Create the player
     @player = Player.new
     # Create an array of obstacles
@@ -316,6 +329,8 @@ class MyWindow < Gosu::Window
   def update
     # Check if any game screen is visible
     if @start
+      return
+    elsif @instruction
       return
     elsif @settings_screen
       return
@@ -385,6 +400,16 @@ class MyWindow < Gosu::Window
           when 'Quit'
             close
         end
+      # If the user clicks on the instruction image, hide the start screen and show the instruction image
+      elsif @start.mouse_over_instruction?(mouse_x, mouse_y)
+        # Close the instruction and return to main menu
+        @instruction = Gosu::Image.new("Image/instruction.png")
+        @start = nil
+      end
+    elsif @instruction
+      if id == Gosu::KbEscape
+        @instruction = nil
+        @start = Start.new
       end
     # Check if the settings screen is visible
     elsif @settings_screen
@@ -490,6 +515,8 @@ class MyWindow < Gosu::Window
     # Check which screen is currently visible
     if @start
       @start.draw
+    elsif @instruction
+      @instruction.draw(0, 0, ZOrder::TOP)
     elsif @settings_screen
       @settings_screen.draw
     elsif @pause
@@ -497,6 +524,11 @@ class MyWindow < Gosu::Window
     elsif @game_over
       @game_over.draw
     else
+      #Draw the background
+      draw_rect(0, 0, 130, HEIGHT, Gosu::Color.argb(0xff_006400), ZOrder::BACKGROUND)
+      draw_rect(120, 0, 10, HEIGHT, Gosu::Color.argb(0xff_333333), ZOrder::BACKGROUND)
+      draw_rect(WIDTH - 115, 0, WIDTH, HEIGHT, Gosu::Color.argb(0xff_006400), ZOrder::BACKGROUND)
+      draw_rect(WIDTH - 115, 0, 10, HEIGHT, Gosu::Color.argb(0xff_333333), ZOrder::BACKGROUND)
       # Draw the player, obstacles, and lines
       @player.draw
       @obstacles.each do |obstacle|
