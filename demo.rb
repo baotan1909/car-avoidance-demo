@@ -441,16 +441,18 @@ class MyWindow < Gosu::Window
         @pause = Pause.new(@player.score, @player.hi_score)
       end
     elsif @pause
-      # Restart the game
-      if @pause.mouse_over_restart?(mouse_x, mouse_y)
-        restart_game()
-      # Return to the main menu
-      elsif @pause.mouse_over_menu?(mouse_x, mouse_y)
-        back_to_menu()
       # Resume the game
-      elsif id == Gosu::KbP
+      if id == Gosu::KbP
         @pause = nil
-      end
+      elsif id == Gosu::MsLeft
+        # Restart the game
+        if @pause.mouse_over_restart?(mouse_x, mouse_y)
+          restart_game()
+        # Return to the main menu
+        elsif @pause.mouse_over_menu?(mouse_x, mouse_y)
+          back_to_menu()
+        end
+      end  
     end
   end
 
