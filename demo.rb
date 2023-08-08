@@ -424,13 +424,15 @@ class MyWindow < Gosu::Window
         @start = Start.new
       end
     # Check if the game over screen is visible
-    elsif @game_over && id == Gosu::MsLeft
-      # Restart the game
-      if @game_over.mouse_over_restart?(mouse_x, mouse_y)
-        restart_game()
-      # Return to the main menu
-      elsif @game_over.mouse_over_menu?(mouse_x, mouse_y)
-        back_to_menu()
+    elsif @game_over 
+      if id == Gosu::MsLeft
+        # Restart the game
+        if @game_over.mouse_over_restart?(mouse_x, mouse_y)
+          restart_game()
+        # Return to the main menu
+        elsif @game_over.mouse_over_menu?(mouse_x, mouse_y)
+          back_to_menu()
+        end
       end
     # Check if the pause screen is visible
     elsif @pause == nil
