@@ -34,7 +34,7 @@ end
 class Player
   attr_accessor :image, :x_pos, :y_pos, :score, :hi_score, :font, :score_txt, :hi_score_txt
   def initialize
-    @image = Gosu::Image.new("Image/player.png")
+    @image = Gosu::Image.new("./Image/player.png")
     # Sets the initial position of the player
     @x_pos = WIDTH / 2
     @y_pos = HEIGHT - 30
@@ -61,13 +61,13 @@ class Player
     @score += 1
     @score_txt = "Score: #{@score}"
     # Checks if the high score file exists. If it does, reads the high score from the file and assigns it to @hi_score
-    if File.exist?('high_score.txt')
-      @hi_score = File.read('high_score.txt').to_i
+    if File.exist?('.\game\high_score.txt')
+      @hi_score = File.read('.\game\high_score.txt').to_i
     end
     # If the current score is greater than the high score, updates the high score and saves it to the file
     if @score > @hi_score
       @hi_score = @score
-      File.write('high_score.txt', @hi_score)
+      File.write('.\game\high_score.txt', @hi_score)
     end
     # Updates the high score text
     @hi_score_txt = "Hi-Score: #{@hi_score}"
@@ -83,7 +83,7 @@ end
 class Obstacles
     attr_accessor :image, :x_pos, :y_pos
     def initialize
-        @image = Gosu::Image.new("Image/ob.png")
+        @image = Gosu::Image.new("./Image/ob.png")
         # The x-position of the obstacle, randomly generated between 150 and 465
         @x_pos = rand(150..465) 
         @y_pos = 20
@@ -164,7 +164,7 @@ class Start
     # Sets the selected button to the first button in the array
     @selected_button = 0
     # Loads the instruction rectangle image
-    @instruction_rectangle = Gosu::Image.new("Image/instruction_rect.png")
+    @instruction_rectangle = Gosu::Image.new("./Image/instruction_rect.png")
     # Sets the x and y coordinates of the instruction rectangle
     @instruction_x = 80
     @instruction_y = (HEIGHT/2) - (@instruction_rectangle.height/2)
@@ -218,7 +218,7 @@ class SettingsScreen
     # Update the music volume and the volume label
     update_volume_label
     # Save the new music volume to a file
-    File.write('music_volume.txt', @music_volume)
+    File.write('.\audio\music_volume.txt', @music_volume)
   end
 
   # Update the volume label to reflect the current music volume
@@ -319,7 +319,7 @@ class MyWindow < Gosu::Window
     load_music_volume
 
     # Create the song
-    @song = Gosu::Song.new("Nutcracker REMIX.mp3")
+    @song = Gosu::Song.new('.\audio\Nutcracker REMIX.mp3')
     @song.volume = @settings_screen.music_volume / 100.0
     @settings_screen = nil
     # Play the song at the start of the menu
@@ -403,7 +403,7 @@ class MyWindow < Gosu::Window
       # If the user clicks on the instruction image, hide the start screen and show the instruction image
       elsif @start.mouse_over_instruction?(mouse_x, mouse_y)
         # Close the instruction and return to main menu
-        @instruction = Gosu::Image.new("Image/instruction.png")
+        @instruction = Gosu::Image.new("./Image/instruction.png")
         @start = nil
       end
     elsif @instruction
@@ -498,13 +498,13 @@ class MyWindow < Gosu::Window
 
   def load_music_volume
     # If the music volume file exists, load the file
-    if (File.exist?('music_volume.txt'))
+    if (File.exist?('.\audio\music_volume.txt'))
       # If the settings screen is not yet created, create it
       if @settings_screen.nil?
         @settings_screen = SettingsScreen.new
       end
       # Get the music volume from the file
-      @settings_screen.music_volume = File.read('music_volume.txt').to_i
+      @settings_screen.music_volume = File.read('.\audio\music_volume.txt').to_i
       # Update the volume label in the Settings screen
       @settings_screen.update_volume_label
     else
