@@ -2,6 +2,11 @@
 This repository contains the source code for a simple car avoidance game developed using the Gosu library in Ruby. The game involves controlling a player's car to avoid obstacles and achieve a high score. __Actually, this is just a school project__.
 ## Game Description
 Car Avoidance is a simple 2D game where players control a car and attempt to avoid all the obstacles along the road. The game features a car that the player can move left and right, as well as obstacles that move downward. The objective is to get the highest score by avoiding collisions with any obstacles.
+
+<p align="center">
+<img src="https://github.com/baotan1909/Car-Avoidance/assets/125344198/059144f5-d2e4-432b-8d44-da2bdecaeff1)" alt="main_gameplay">
+</p>
+
 ## Gameplay
 - The player controls a car using the left and right arrow keys to move horizontally.
 - The goal is to avoid colliding with the randomly generated obstacles that move downwards on the screen.
